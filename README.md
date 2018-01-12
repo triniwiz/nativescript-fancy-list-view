@@ -134,10 +134,10 @@ _Angular v4+_
 | Property   | Default                  | Type              | Required                 | Description |
 | ---------- | ------------------------ | ----------------- | ------------------------ | ----------- |
 | items      | null                     | Array             | <ul><li>- [x] </li></ul> |             |
-| itemWidth  | 100%                     | `string | number` | <ul><li>- [ ] </li></ul> |             |
-| itemHeight | 25%                      | `string | number` | <ul><li>- [ ] </li></ul> |             |
-| min        | (itemWidth \* 2) / (1/3) | `string | number` | <ul><li>- [ ] </li></ul> |             |
-| max        | (itemWidth \* 2)         | `string | number` | <ul><li>- [ ] </li></ul> |             |
+| itemWidth  | 100%                     | `string / number` | <ul><li>- [ ] </li></ul> |             |
+| itemHeight | 25%                      | `string / number` | <ul><li>- [ ] </li></ul> |             |
+| min        | (itemWidth \* 2) / (1/3) | `string / number` | <ul><li>- [ ] </li></ul> |             |
+| max        | (itemWidth \* 2)         | `string / number` | <ul><li>- [ ] </li></ul> |             |
 | spanCount  | 1                        | number            | <ul><li>- [ ] </li></ul> |             |
 | layoutType | linear                   | string            | <ul><li>- [ ] </li></ul> |             |
 

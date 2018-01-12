@@ -26,7 +26,7 @@ declare module android {
 			export module util {
 				export class AsyncListUtil {
 					public refresh(): void;
-					public constructor(param0: javalangClass, param1: number, param2: android.support.v7.util.AsyncListUtil.DataCallback, param3: android.support.v7.util.AsyncListUtil.ViewCallback);
+					public constructor(param0: javalangClass<any>, param1: number, param2: android.support.v7.util.AsyncListUtil.DataCallback, param3: android.support.v7.util.AsyncListUtil.ViewCallback);
 					public getItemCount(): number;
 					public onRangeChanged(): void;
 					public getItem(param0: number): javalangObject;
@@ -175,17 +175,17 @@ declare module android {
 				export class SortedList {
 					public static INVALID_POSITION: number;
 					public beginBatchedUpdates(): void;
-					public constructor(param0: javalangClass, param1: android.support.v7.util.SortedList.Callback, param2: number);
+					public constructor(param0: javalangClass<any>, param1: android.support.v7.util.SortedList.Callback, param2: number);
 					public updateItemAt(param0: number, param1: javalangObject): void;
 					public size(): number;
 					public add(param0: javalangObject): number;
 					public remove(param0: javalangObject): boolean;
-					public addAll(param0: javautilCollection): void;
+					public addAll(param0: javautilCollection<any>): void;
 					public addAll(param0: native.Array<javalangObject>): void;
 					public recalculatePositionOfItemAt(param0: number): void;
 					public indexOf(param0: javalangObject): number;
 					public clear(): void;
-					public constructor(param0: javalangClass, param1: android.support.v7.util.SortedList.Callback);
+					public constructor(param0: javalangClass<any>, param1: android.support.v7.util.SortedList.Callback);
 					public addAll(param0: native.Array<javalangObject>, param1: boolean): void;
 					public get(param0: number): javalangObject;
 					public endBatchedUpdates(): void;
@@ -292,7 +292,7 @@ declare module android {
 						public mItems: native.Array<javalangObject>;
 						public mStartPosition: number;
 						public mItemCount: number;
-						public constructor(param0: javalangClass, param1: number);
+						public constructor(param0: javalangClass<any>, param1: number);
 					}
 				}
 			}
@@ -410,7 +410,7 @@ declare module android {
 					public constructor();
 					public animateAdd(param0: android.support.v7.widget.RecyclerView.ViewHolder): boolean;
 					public isRunning(): boolean;
-					public canReuseUpdatedViewHolder(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: javautilList): boolean;
+					public canReuseUpdatedViewHolder(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: javautilList<any>): boolean;
 					public animateMove(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: number, param2: number, param3: number, param4: number): boolean;
 				}
 				export module DefaultItemAnimator {
@@ -727,7 +727,7 @@ declare module android {
 						public assignPositionFromScrapList(param0: android.view.View): void;
 					}
 					export class SavedState {
-						public static CREATOR: android.os.Parcelable.Creator;
+						public static CREATOR: android.os.Parcelable.Creator<any>;
 						public constructor();
 						public describeContents(): number;
 						public writeToParcel(param0: android.os.Parcel, param1: number): void;
@@ -890,7 +890,7 @@ declare module android {
 					public size(): number;
 					public removeAtRange(param0: number, param1: number): void;
 					public clone(): android.support.v7.widget.PositionMap;
-					public removeKeyRange(param0: javautilArrayList, param1: number, param2: number): void;
+					public removeKeyRange(param0: javautilArrayList<any>, param1: number, param2: number): void;
 					public setValueAt(param0: number, param1: javalangObject): void;
 					public toString(): string;
 					public put(param0: number, param1: javalangObject): void;
@@ -989,7 +989,7 @@ declare module android {
 					public requestChildRectangleOnScreen(param0: android.view.View, param1: android.graphics.Rect, param2: boolean): boolean;
 					public getChildPosition(param0: android.view.View): number;
 					public getChildViewHolder(param0: android.view.View): android.support.v7.widget.RecyclerView.ViewHolder;
-					public addFocusables(param0: javautilArrayList, param1: number, param2: number): void;
+					public addFocusables(param0: javautilArrayList<any>, param1: number, param2: number): void;
 					public setNestedScrollingEnabled(param0: boolean): void;
 					public generateDefaultLayoutParams(): android.view.ViewGroup.LayoutParams;
 					public stopScroll(): void;
@@ -1008,7 +1008,7 @@ declare module android {
 					public setItemAnimator(param0: android.support.v7.widget.RecyclerView.ItemAnimator): void;
 					public smoothScrollToPosition(param0: number): void;
 					public constructor(param0: android.content.Context);
-					public dispatchSaveInstanceState(param0: android.util.SparseArray): void;
+					public dispatchSaveInstanceState(param0: android.util.SparseArray<any>): void;
 					public isNestedScrollingEnabled(): boolean;
 					public focusSearch(param0: android.view.View, param1: number): android.view.View;
 					public checkLayoutParams(param0: android.view.ViewGroup.LayoutParams): boolean;
@@ -1039,7 +1039,7 @@ declare module android {
 					public dispatchNestedScroll(param0: number, param1: number, param2: number, param3: number, param4: native.Array<number>): boolean;
 					public findContainingItemView(param0: android.view.View): android.view.View;
 					public setLayoutFrozen(param0: boolean): void;
-					public dispatchRestoreInstanceState(param0: android.util.SparseArray): void;
+					public dispatchRestoreInstanceState(param0: android.util.SparseArray<any>): void;
 					public clearOnChildAttachStateChangeListeners(): void;
 					public setLayoutManager(param0: android.support.v7.widget.RecyclerView.LayoutManager): void;
 					public findViewHolderForAdapterPosition(param0: number): android.support.v7.widget.RecyclerView.ViewHolder;
@@ -1088,7 +1088,7 @@ declare module android {
 						public hasStableIds(): boolean;
 						public onCreateViewHolder(param0: android.view.ViewGroup, param1: number): android.support.v7.widget.RecyclerView.ViewHolder;
 						public bindViewHolder(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: number): void;
-						public onBindViewHolder(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: number, param2: javautilList): void;
+						public onBindViewHolder(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: number, param2: javautilList<any>): void;
 						public onFailedToRecycleView(param0: android.support.v7.widget.RecyclerView.ViewHolder): boolean;
 						public getItemId(param0: number): number;
 						public onViewRecycled(param0: android.support.v7.widget.RecyclerView.ViewHolder): void;
@@ -1157,10 +1157,10 @@ declare module android {
 						public onAnimationFinished(param0: android.support.v7.widget.RecyclerView.ViewHolder): void;
 						public getAddDuration(): number;
 						public setAddDuration(param0: number): void;
-						public canReuseUpdatedViewHolder(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: javautilList): boolean;
+						public canReuseUpdatedViewHolder(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: javautilList<any>): boolean;
 						public setChangeDuration(param0: number): void;
 						public recordPostLayoutInformation(param0: android.support.v7.widget.RecyclerView.State, param1: android.support.v7.widget.RecyclerView.ViewHolder): android.support.v7.widget.RecyclerView.ItemAnimator.ItemHolderInfo;
-						public recordPreLayoutInformation(param0: android.support.v7.widget.RecyclerView.State, param1: android.support.v7.widget.RecyclerView.ViewHolder, param2: number, param3: javautilList): android.support.v7.widget.RecyclerView.ItemAnimator.ItemHolderInfo;
+						public recordPreLayoutInformation(param0: android.support.v7.widget.RecyclerView.State, param1: android.support.v7.widget.RecyclerView.ViewHolder, param2: number, param3: javautilList<any>): android.support.v7.widget.RecyclerView.ItemAnimator.ItemHolderInfo;
 						public dispatchAnimationsFinished(): void;
 						public getChangeDuration(): number;
 						public constructor();
@@ -1256,7 +1256,7 @@ declare module android {
 						public requestChildRectangleOnScreen(param0: android.support.v7.widget.RecyclerView, param1: android.view.View, param2: android.graphics.Rect, param3: boolean, param4: boolean): boolean;
 						public getPaddingTop(): number;
 						public computeHorizontalScrollOffset(param0: android.support.v7.widget.RecyclerView.State): number;
-						public onAddFocusables(param0: android.support.v7.widget.RecyclerView, param1: javautilArrayList, param2: number, param3: number): boolean;
+						public onAddFocusables(param0: android.support.v7.widget.RecyclerView, param1: javautilArrayList<any>, param2: number, param3: number): boolean;
 						public getMinimumWidth(): number;
 						public removeViewAt(param0: number): void;
 						public getPaddingLeft(): number;
@@ -1456,7 +1456,7 @@ declare module android {
 						public recycleView(param0: android.view.View): void;
 						public constructor(param0: android.support.v7.widget.RecyclerView);
 						public setViewCacheSize(param0: number): void;
-						public getScrapList(): javautilList;
+						public getScrapList(): javautilList<any>;
 						public clear(): void;
 						public bindViewToPosition(param0: android.view.View, param1: number): void;
 						public convertPreLayoutPositionToPostLayout(param0: number): number;
@@ -1479,7 +1479,7 @@ declare module android {
 						public onItemRangeRemoved(param0: number, param1: number): void;
 					}
 					export class SavedState {
-						public static CREATOR: android.os.Parcelable.Creator;
+						public static CREATOR: android.os.Parcelable.Creator<any>;
 						public writeToParcel(param0: android.os.Parcel, param1: number): void;
 					}
 					export class SimpleOnItemTouchListener {
@@ -1653,7 +1653,7 @@ declare module android {
 					public constructor();
 					public onAddFinished(param0: android.support.v7.widget.RecyclerView.ViewHolder): void;
 					public animatePersistence(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: android.support.v7.widget.RecyclerView.ItemAnimator.ItemHolderInfo, param2: android.support.v7.widget.RecyclerView.ItemAnimator.ItemHolderInfo): boolean;
-					public canReuseUpdatedViewHolder(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: javautilList): boolean;
+					public canReuseUpdatedViewHolder(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: javautilList<any>): boolean;
 					public dispatchAddStarting(param0: android.support.v7.widget.RecyclerView.ViewHolder): void;
 					public setSupportsChangeAnimations(param0: boolean): void;
 					public animateChange(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: android.support.v7.widget.RecyclerView.ViewHolder, param2: android.support.v7.widget.RecyclerView.ItemAnimator.ItemHolderInfo, param3: android.support.v7.widget.RecyclerView.ItemAnimator.ItemHolderInfo): boolean;
@@ -1802,14 +1802,14 @@ declare module android {
 					}
 					export module LazySpanLookup {
 						export class FullSpanItem {
-							public static CREATOR: android.os.Parcelable.Creator;
+							public static CREATOR: android.os.Parcelable.Creator<any>;
 							public describeContents(): number;
 							public toString(): string;
 							public writeToParcel(param0: android.os.Parcel, param1: number): void;
 						}
 					}
 					export class SavedState {
-						public static CREATOR: android.os.Parcelable.Creator;
+						public static CREATOR: android.os.Parcelable.Creator<any>;
 						public constructor();
 						public describeContents(): number;
 						public writeToParcel(param0: android.os.Parcel, param1: number): void;
@@ -1956,7 +1956,7 @@ declare module android {
 							public getSwipeVelocityThreshold(param0: number): number;
 							public getMovementFlags(param0: android.support.v7.widget.RecyclerView, param1: android.support.v7.widget.RecyclerView.ViewHolder): number;
 							public onChildDraw(param0: android.graphics.Canvas, param1: android.support.v7.widget.RecyclerView, param2: android.support.v7.widget.RecyclerView.ViewHolder, param3: number, param4: number, param5: number, param6: boolean): void;
-							public chooseDropTarget(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: javautilList, param2: number, param3: number): android.support.v7.widget.RecyclerView.ViewHolder;
+							public chooseDropTarget(param0: android.support.v7.widget.RecyclerView.ViewHolder, param1: javautilList<any>, param2: number, param3: number): android.support.v7.widget.RecyclerView.ViewHolder;
 							public getSwipeEscapeVelocity(param0: number): number;
 							public isItemViewSwipeEnabled(): boolean;
 							public clearView(param0: android.support.v7.widget.RecyclerView, param1: android.support.v7.widget.RecyclerView.ViewHolder): void;
