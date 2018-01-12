@@ -1,0 +1,12 @@
+<Page
+    xmlns="http://schemas.nativescript.org/tns.xsd" loaded="pageLoaded" class="page"
+    xmlns:ui="nativescript-fancy-list-view">
+    <ui:FancyListView orientation="vertical" items="{{items}}" layoutType="grid" spanCount="2" hideScrollBar="true">
+        <ui:FancyListView.itemTemplate>
+            <GridLayout rows="auto,*">
+                <Label text="{{ title }}" class="t-20 text-center c-black" textWrap="true"/>
+                <Image stretch="fill" row="1" src="{{image}}"></Image>
+            </GridLayout>
+        </ui:FancyListView.itemTemplate>
+    </ui:FancyListView>
+</Page>

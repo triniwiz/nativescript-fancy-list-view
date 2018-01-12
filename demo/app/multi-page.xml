@@ -1,0 +1,20 @@
+<Page
+    xmlns="http://schemas.nativescript.org/tns.xsd" loaded="pageLoaded" class="page"
+    xmlns:ui="nativescript-fancy-list-view">
+    <ui:FancyListView itemTemplateSelector="$index % 2 === 0 ? 'even' : 'odd'" orientation="vertical" items="{{items}}" layoutType="grid" spanCount="2" hideScrollBar="true">
+        <FancyListView.itemTemplates>
+            <template key="even">
+                <GridLayout rows="auto,*">
+                    <Label text="{{ title }}" class="t-20 text-center c-black" textWrap="true"/>
+                    <Image stretch="fill" row="1" src="{{image}}"></Image>
+                </GridLayout>
+            </template>
+            <template key="odd">
+                <GridLayout rows="auto,*" background="red">
+                    <Label text="{{ title }}" class="t-20 text-center c-black" textWrap="true"/>
+                    <Image stretch="fill" row="1" src="{{image}}"></Image>
+                </GridLayout>
+            </template>
+        </FancyListView.itemTemplates>
+    </ui:FancyListView>
+</Page>
