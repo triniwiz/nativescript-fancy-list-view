@@ -23,11 +23,46 @@ These components make use of several CSS class names that are part of the Native
 core theme, such as p-20, btn, h2, and list-group. You can view a full list of the
 class names available for styling your app at https://docs.nativescript.org/ui/theme.
 -->
-<StackLayout class="page">
-    <ListView [items]="items" class="list-group">
+<GridLayout rows="auto,auto,auto,auto,auto,auto,*" class="page">
+    <TextField #span horizontalAlignment="center" [text]="spanCount" ></TextField>
+    <Button row="1" (tap)="updateSpan(span)" text="Update Span"></Button>
+    <Button row="2" (tap)="default()" text="Default Template"></Button>
+    <Button row="3" (tap)="multi()" text="Show Multi Template"></Button>
+    <Button row="4" (tap)="grid()" text="Show Grid Layout"></Button>
+    <Button row="5" (tap)="staggered()" text="Show Staggered Layout"></Button>
+
+    <FancyListView *ngIf="selectedList === 0" row="6" height="100%" itemHeight="30%" [items]="items" class="list-group"
+                   [spanCount]="spanCount" [layoutType]="layoutType">
         <ng-template let-item="item">
-            <Label [nsRouterLink]="['/item', item.id]" [text]="item.name"
-                class="list-group-item"></Label>
+            <GridLayout rows="auto,*" [borderWidth]="layoutType === 'staggered' ? 1 : 0" borderColor="gray" borderRadius="10">
+                <Label [nsRouterLink]="['/item', item.id]" [text]="item.title"
+                       class="list-group-item"></Label>
+                <Image row="1" stretch="fill" [src]="item.image"></Image>
+            </GridLayout>
         </ng-template>
-    </ListView>
-</StackLayout>
+    </FancyListView>
+
+
+    <FancyListView itemHeight="30%" [spanCount]="spanCount" [layoutType]="layoutType" [itemTemplateSelector]="templateSelector" *ngIf="selectedList === 1" row="6" height="100%"
+                   [items]="items" class="list-group">
+
+        <ng-template flvTemplateKey="even" let-item="item">
+            <GridLayout rows="auto,auto,*" backgroundColor="blue">
+                <Label text="Even {{item.id}}"></Label>
+                <Label row="1" [nsRouterLink]="['/item', item.id]" [text]="item.title"
+                       class="list-group-item"></Label>
+                <Image row="2" stretch="fill" [src]="item.image"></Image>
+            </GridLayout>
+        </ng-template>
+
+        <ng-template flvTemplateKey="odd" let-item="item">
+            <GridLayout rows="auto,auto,*">
+                <Label text="Odd {{item.id}}"></Label>
+                <Label row="1" [nsRouterLink]="['/item', item.id]" [text]="item.title"
+                       class="list-group-item"></Label>
+                <Image row="2" stretch="fill" [src]="item.image"></Image>
+            </GridLayout>
+        </ng-template>
+    </FancyListView>
+
+</GridLayout>
