@@ -12,6 +12,8 @@ import { addWeakEventListener, removeWeakEventListener } from 'tns-core-modules/
 export const ITEMLOADING = 'itemLoading';
 export const LOADMOREITEMS = 'loadMoreItems';
 export const ITEMTAP = 'itemTap';
+export const SCROLLEVENT = "scroll";
+
 export type Orientation = 'horizontal' | 'vertical';
 export * from 'tns-core-modules/ui/core/view';
 export namespace knownTemplates {
@@ -67,6 +69,10 @@ export abstract class FancyListViewBase extends View {
     public spanCount: number;
     public items: any[] | ItemsSource;
     public itemTemplate: string | Template;
+    public static itemLoadingEvent = ITEMLOADING;
+    public static itemTapEvent = ITEMTAP;
+    public static loadMoreItemsEvent = LOADMOREITEMS;
+    public static scrollEvent = SCROLLEVENT;
     public _defaultTemplate: KeyedTemplate = {
         key: 'default',
         createView: () => {
@@ -123,6 +129,8 @@ export abstract class FancyListViewBase extends View {
             this._itemTemplateSelector = value;
         }
     }
+
+
 
     public onLayout(left: number, top: number, right: number, bottom: number) {
         super.onLayout(left, top, right, bottom);
@@ -188,7 +196,7 @@ export abstract class FancyListViewBase extends View {
 
     private _getDataItem(index: number): any {
         let thisItems = <ItemsSource>this.items;
-        return thisItems.getItem ? thisItems.getItem(index) : thisItems[index];
+        return (thisItems && thisItems.getItem) ? thisItems.getItem(index) : thisItems[index];
     }
 }
 
@@ -230,6 +238,7 @@ itemsProperty.register(FancyListViewBase);
 export const itemTemplateProperty = new Property<FancyListViewBase,
     string | Template>({
     name: 'itemTemplate',
+    affectsLayout: true,
     valueChanged: target => {
         target.refresh();
     }
@@ -239,6 +248,7 @@ itemTemplateProperty.register(FancyListViewBase);
 export const itemTemplatesProperty = new Property<FancyListViewBase,
     string | Array<KeyedTemplate>>({
     name: 'itemTemplates',
+    affectsLayout: true,
     valueConverter: value => {
         if (typeof value === 'string') {
             return parseMultipleTemplates(value);

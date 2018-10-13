@@ -210,10 +210,11 @@ export class FancyListView extends FancyListViewBase {
         this.setLayoutType(this.layoutType);
 
         // clear bindingContext when it is not observable because otherwise bindings to items won't reevaluate
-        this._map.forEach((view) => {
+        this._map.forEach((view,cell:FancyListViewCell) => {
             if (!(view.bindingContext instanceof Observable)) {
                 view.bindingContext = null;
-                view.requestLayout()
+                view.requestLayout();
+                cell.setNeedsLayout();
             }
         });
         if (this.isLoaded) {
@@ -285,7 +286,7 @@ export class FancyListView extends FancyListViewBase {
         }
     }
 
-    _setNativeClipToBounds() {
+    private _setNativeClipToBounds():void {
         this._ios.clipsToBounds = true;
     }
 
@@ -319,8 +320,16 @@ export class FancyListView extends FancyListViewBase {
         if (nativeView && this._innerWidth && this.layoutType) {
             let width;
             let height;
-            this._measuredMap.clear();
-            this._map.clear();
+            this._measuredMap.forEach((CGSize,index)=>{
+
+            });
+            this._map.forEach((view,cell:FancyListViewCell) => {
+                if (!(view.bindingContext instanceof Observable)) {
+                    view.bindingContext = null;
+                    view.requestLayout();
+                    cell.setNeedsLayout();
+                }
+            });
             switch (type) {
                 case LayoutTypeOptions.GRID:
                     width = this._innerWidth / this.spanCount;
@@ -474,7 +483,7 @@ class UICollectionDelegateImpl extends NSObject
     public collectionViewWillDisplayCellForItemAtIndexPath(collectionView: UICollectionView,
                                                            cell: UICollectionViewCell,
                                                            indexPath: NSIndexPath) {
-        const owner = this._owner.get();
+        const owner = this._owner && this._owner.get() ? this._owner.get() : null;
 
         if (indexPath.row === owner.items.length - 1) {
             owner.notify<EventData>({
@@ -628,14 +637,14 @@ class UICollectionViewFlowGridLayoutImpl extends UICollectionViewFlowLayout {
                 this,
                 indexPath
             );
-            let attributes = UICollectionViewLayoutAttributes.layoutAttributesForCellWithIndexPath(
-                indexPath
-            );
             let frame = CGRectMake(
                 xOffset[column],
                 yOffset[column],
                 size.width,
                 size.height
+            );
+            let attributes = UICollectionViewLayoutAttributes.layoutAttributesForCellWithIndexPath(
+                indexPath
             );
             let insetFrame = CGRectInset(frame, 0, 0); // frame.insetBy(dx: cellPadding, dy: cellPadding)
             attributes.frame = insetFrame;
