@@ -317,7 +317,7 @@ function ensureFancyListViewAdapterClass() {
   }
 
   class FancyListViewAdapter extends android.support.v7.widget.RecyclerView
-    .Adapter {
+    .Adapter<any> {
     owner: WeakRef<FancyListView>;
 
     constructor(owner: WeakRef<FancyListView>) {
