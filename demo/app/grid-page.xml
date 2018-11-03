@@ -1,7 +1,7 @@
 <Page
     xmlns="http://schemas.nativescript.org/tns.xsd" loaded="pageLoaded" class="page"
     xmlns:ui="nativescript-fancy-list-view">
-    <ui:FancyListView orientation="vertical" items="{{items}}" itemHeight="50%" layoutType="grid" spanCount="3" hideScrollBar="true">
+    <ui:FancyListView orientation="vertical" items="{{items}}" layoutType="grid" spanCount="3" hideScrollBar="true">
         <ui:FancyListView.itemTemplate>
             <GridLayout rows="auto,*">
                 <Label text="{{ title }}" class="t-20 text-center c-black" textWrap="true"/>

@@ -1,7 +1,7 @@
 <Page
     xmlns="http://schemas.nativescript.org/tns.xsd" loaded="pageLoaded" class="page"
     xmlns:ui="nativescript-fancy-list-view">
-    <ui:FancyListView itemTemplateSelector="$index % 2 === 0 ? 'even' : 'odd'" orientation="vertical" items="{{items}}" layoutType="grid" spanCount="2" hideScrollBar="true">
+    <ui:FancyListView itemTemplateSelector="$index % 2 === 0 ? 'even' : 'odd'" orientation="vertical" items="{{items}}" layoutType="grid" spanCount="3" hideScrollBar="true">
         <FancyListView.itemTemplates>
             <template key="even">
                 <GridLayout rows="auto,*">
