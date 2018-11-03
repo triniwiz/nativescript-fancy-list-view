@@ -1,8 +1,22 @@
 import * as common from './fancy-list-view.common';
 import {
-    EventData, FancyListViewBase, hideScrollBarProperty, ItemEventData, ITEMLOADING, ITEMTAP,
-    itemTemplatesProperty, LayoutType, LayoutTypeOptions, layoutTypeProperty, LOADMOREITEMS, Orientation,
-    orientationProperty, paddingBottomProperty, paddingLeftProperty, paddingRightProperty, paddingTopProperty,
+    EventData,
+    FancyListViewBase,
+    hideScrollBarProperty,
+    ItemEventData,
+    ITEMLOADING,
+    ITEMTAP,
+    itemTemplatesProperty,
+    LayoutType,
+    LayoutTypeOptions,
+    layoutTypeProperty,
+    LOADMOREITEMS,
+    Orientation,
+    orientationProperty,
+    paddingBottomProperty,
+    paddingLeftProperty,
+    paddingRightProperty,
+    paddingTopProperty,
     spanCountProperty
 } from './fancy-list-view.common';
 import { KeyedTemplate, layout, Length, Observable, PercentLength, View } from 'tns-core-modules/ui/core/view';
@@ -27,38 +41,53 @@ export class FancyListView extends FancyListViewBase {
 
     constructor() {
         super();
+        this._map = new Map<FancyListViewCell, View>();
+        this._measuredMap = new Map<number, CGSize>();
+    }
+
+    createNativeView() {
         this._layout = UICollectionViewFlowLinearLayoutImpl.initWithOwner(
             new WeakRef(this)
         );
         this._layout.minimumLineSpacing = 0;
         this._layout.minimumInteritemSpacing = 0;
-        this.nativeViewProtected = this._ios = UICollectionView.alloc().initWithFrameCollectionViewLayout(
+        return UICollectionView.alloc().initWithFrameCollectionViewLayout(
             CGRectZero,
             this._layout
         );
+    }
 
-        this._ios.backgroundColor = UIColor.clearColor;
-        this._ios.autoresizesSubviews = false;
-        this._ios.autoresizingMask = UIViewAutoresizing.None;
-        this._ios.registerClassForCellWithReuseIdentifier(
+    get ios(): UICollectionView {
+        return this.nativeViewProtected;
+    }
+
+    initNativeView() {
+        super.initNativeView();
+        const nativeView = this.nativeViewProtected;
+        nativeView.backgroundColor = UIColor.clearColor;
+        nativeView.autoresizesSubviews = false;
+        nativeView.autoresizingMask = UIViewAutoresizing.None;
+        nativeView.registerClassForCellWithReuseIdentifier(
             FancyListViewCell.class(),
             this._defaultTemplate.key
         );
 
-        this._ios.dataSource = this._dataSource = UICollectionViewDataSourceImpl.initWithOwner(
+        nativeView.dataSource = this._dataSource = UICollectionViewDataSourceImpl.initWithOwner(
             new WeakRef(this)
         );
 
         this._delegate = UICollectionDelegateImpl.initWithOwner(new WeakRef(this));
-        this._map = new Map<FancyListViewCell, View>();
-        this._measuredMap = new Map<number, CGSize>();
         this._setNativeClipToBounds();
     }
 
-    _ios: UICollectionView;
+    disposeNativeView() {
+        this._delegate = null;
+        this._dataSource = null;
+        super.disposeNativeView();
+    }
 
-    get ios(): UICollectionView {
-        return this._ios;
+    get _childrenCount(): number {
+        return this._map.size;
     }
 
     @profile
@@ -67,11 +96,11 @@ export class FancyListView extends FancyListViewBase {
         if (this._isDataDirty) {
             this.refresh();
         }
-        this._ios.delegate = this._delegate;
+        this.ios.delegate = this._delegate;
     }
 
     public onUnloaded() {
-        this._ios.delegate = null;
+        this.ios.delegate = null;
         super.onUnloaded();
     }
 
@@ -92,12 +121,10 @@ export class FancyListView extends FancyListViewBase {
 
     public [layoutTypeProperty.setNative](type: LayoutType) {
         this.setLayoutType(type);
-        return type;
     }
 
     public [spanCountProperty.setNative](count: number) {
         this.setSpanCount(count);
-        return count;
     }
 
     public [orientationProperty.getDefault](): Orientation {
@@ -128,10 +155,10 @@ export class FancyListView extends FancyListViewBase {
     public [hideScrollBarProperty.setNative](hide: boolean) {
         switch (this.orientation) {
             case 'horizontal':
-                this._ios.showsHorizontalScrollIndicator = !hide;
+                this.ios.showsHorizontalScrollIndicator = !hide;
                 break;
             default:
-                this._ios.showsVerticalScrollIndicator = !hide;
+                this.ios.showsVerticalScrollIndicator = !hide;
                 break;
         }
     }
@@ -178,26 +205,24 @@ export class FancyListView extends FancyListViewBase {
 
     public onLayout(left: number, top: number, right: number, bottom: number) {
         super.onLayout(left, top, right, bottom);
-        this.setSpanCount(this.spanCount);
         this.setLayoutType(this.layoutType);
     }
 
     public measure(widthMeasureSpec: number, heightMeasureSpec: number): void {
-        this.widthMeasureSpec = widthMeasureSpec;
-        this.heightMeasureSpec = heightMeasureSpec;
         const changed = (this as any)._setCurrentMeasureSpecs(
             widthMeasureSpec,
             heightMeasureSpec
         );
         super.measure(widthMeasureSpec, heightMeasureSpec);
         if (changed) {
-            this._ios.reloadData();
+           // this.ios.reloadData();
+            this._layout.invalidateLayout();
         }
     }
 
     public scrollToIndex(index: number) {
-        if (this._ios) {
-            this._ios.scrollToItemAtIndexPathAtScrollPositionAnimated(
+        if (this.ios) {
+            this.ios.scrollToItemAtIndexPathAtScrollPositionAnimated(
                 NSIndexPath.indexPathForItemInSection(index, 0),
                 UICollectionViewScrollPosition.Top,
                 false
@@ -206,18 +231,17 @@ export class FancyListView extends FancyListViewBase {
     }
 
     public refresh() {
-        this.setSpanCount(this.spanCount);
         this.setLayoutType(this.layoutType);
 
         // clear bindingContext when it is not observable because otherwise bindings to items won't reevaluate
-        this._map.forEach((view,cell:FancyListViewCell) => {
+        this._map.forEach((view, cell: FancyListViewCell) => {
             if (!(view.bindingContext instanceof Observable)) {
                 view.bindingContext = null;
-                view.requestLayout();
-                cell.setNeedsLayout();
             }
+            return true;
         });
         if (this.isLoaded) {
+            this.ios.reloadData();
             this._layout.invalidateLayout();
             this.requestLayout();
             this._isDataDirty = false;
@@ -232,9 +256,11 @@ export class FancyListView extends FancyListViewBase {
 
             let view = cell.view;
             const template = this._getItemTemplate(indexPath.row);
+
             if (!view) {
                 view = template.createView();
             }
+
             let args = <ItemEventData>{
                 eventName: ITEMLOADING,
                 object: this,
@@ -268,9 +294,9 @@ export class FancyListView extends FancyListViewBase {
             this._prepareItem(view, indexPath.row);
             this._map.set(cell, view);
 
-            if (view && !view.parent && view.ios) {
-                cell.contentView.addSubview(view.ios);
+            if (view && !view.parent) {
                 this._addView(view);
+                cell.contentView.addSubview(view.ios);
             }
 
             this._layoutCell(view, indexPath);
@@ -286,8 +312,8 @@ export class FancyListView extends FancyListViewBase {
         }
     }
 
-    private _setNativeClipToBounds():void {
-        this._ios.clipsToBounds = true;
+    private _setNativeClipToBounds(): void {
+        this.ios.clipsToBounds = true;
     }
 
     [itemTemplatesProperty.getDefault](): KeyedTemplate[] {
@@ -300,7 +326,7 @@ export class FancyListView extends FancyListViewBase {
         );
         if (value) {
             for (let i = 0, length = value.length; i < length; i++) {
-                this._ios.registerClassForCellWithReuseIdentifier(
+                this.ios.registerClassForCellWithReuseIdentifier(
                     FancyListViewCell.class(),
                     value[i].key
                 );
@@ -320,37 +346,38 @@ export class FancyListView extends FancyListViewBase {
         if (nativeView && this._innerWidth && this.layoutType) {
             let width;
             let height;
-            this._measuredMap.forEach((CGSize,index)=>{
+            this._measuredMap.forEach((CGSize, index) => {
 
             });
-            this._map.forEach((view,cell:FancyListViewCell) => {
+            this._map.forEach((view, cell: FancyListViewCell) => {
                 if (!(view.bindingContext instanceof Observable)) {
                     view.bindingContext = null;
-                    view.requestLayout();
-                    cell.setNeedsLayout();
                 }
+                return true;
             });
             switch (type) {
                 case LayoutTypeOptions.GRID:
                     width = this._innerWidth / this.spanCount;
-                    this._ios.collectionViewLayout = this._layout = UICollectionViewFlowGridLayoutImpl.initWithOwner(
+                    this.ios.collectionViewLayout = this._layout = UICollectionViewFlowGridLayoutImpl.initWithOwner(
                         new WeakRef(this)
                     );
                     break;
                 case LayoutTypeOptions.STAGGERED:
                     width = this._innerWidth / this.spanCount;
-                    this._ios.collectionViewLayout = this._layout = UICollectionViewFlowStaggeredLayoutImpl.initWithOwner(
+                    this.ios.collectionViewLayout = this._layout = UICollectionViewFlowStaggeredLayoutImpl.initWithOwner(
                         new WeakRef(this)
                     );
                     break;
                 default:
                     width = this._effectiveItemWidth;
                     height = this._effectiveItemHeight;
-                    this._ios.collectionViewLayout = this._layout = UICollectionViewFlowLinearLayoutImpl.initWithOwner(
+                    this.ios.collectionViewLayout = this._layout = UICollectionViewFlowLinearLayoutImpl.initWithOwner(
                         new WeakRef(this)
                     );
                     break;
             }
+            this._layout.invalidateLayout();
+
         }
     }
 
@@ -389,7 +416,6 @@ export class FancyListView extends FancyListViewBase {
             const widthMeasureSpec = layout.makeMeasureSpec(width, layout.EXACTLY);
 
             const heightMeasureSpec = layout.makeMeasureSpec(height, layout.EXACTLY);
-
             View.measureChild(
                 this,
                 cellView,
@@ -405,6 +431,13 @@ export class FancyListViewCell extends UICollectionViewCell {
 
     public get view(): View {
         return this.owner ? this.owner.get() : null;
+    }
+
+    public static initWithEmptyBackground(): FancyListViewCell {
+        const cell = <FancyListViewCell>FancyListViewCell.new();
+        // Clear background by default - this will make cells transparent
+        cell.backgroundColor = null;
+        return cell;
     }
 
     public willMoveToSuperview(newSuperview: UIView): void {
@@ -435,13 +468,17 @@ class UICollectionDelegateImpl extends NSObject
         let owner = this._owner && this._owner.get() ? this._owner.get() : null;
         let width;
         let height;
-        if (!owner) return CGSizeMake(0, 0);
+        if (!owner) return CGSizeZero;
         switch (owner.layoutType) {
             case LayoutTypeOptions.GRID:
                 width = owner._effectiveItemWidth / owner.spanCount;
                 height = owner._effectiveItemHeight;
                 break;
             case LayoutTypeOptions.STAGGERED:
+                const cachedSize = owner._measuredMap.get(indexPath.row);
+                if (cachedSize) {
+                    return cachedSize;
+                }
                 width = owner._effectiveItemWidth / owner.spanCount;
                 let size: CGSize;
                 const max =
@@ -473,7 +510,6 @@ class UICollectionDelegateImpl extends NSObject
                 height = owner._effectiveItemHeight;
                 break;
         }
-
         return CGSizeMake(
             layout.toDeviceIndependentPixels(width),
             layout.toDeviceIndependentPixels(height)
@@ -539,13 +575,13 @@ class UICollectionViewDataSourceImpl extends NSObject
 
     public collectionViewCellForItemAtIndexPath(collectionView: UICollectionView,
                                                 indexPath: NSIndexPath): UICollectionViewCell {
-        const owner = this._owner && this._owner.get();
+        const owner = this._owner && this._owner.get() ? this._owner.get() : null;
         const template = owner && owner._getItemTemplate(indexPath.row);
         let cell =
             collectionView.dequeueReusableCellWithReuseIdentifierForIndexPath(
                 template.key,
                 indexPath
-            ) || FancyListViewCell.new();
+            ) || FancyListViewCell.initWithEmptyBackground();
 
         if (owner) {
             owner._prepareCell(<FancyListViewCell>cell, indexPath);
@@ -579,7 +615,7 @@ class UICollectionViewDataSourceImpl extends NSObject
 
     public collectionViewNumberOfItemsInSection(collectionView: UICollectionView,
                                                 section: number): number {
-        const owner = this._owner && this._owner.get();
+        const owner = this._owner && this._owner.get() ? this._owner.get() : null;
         return owner && owner.items ? owner.items.length : 0;
     }
 
@@ -592,6 +628,7 @@ class UICollectionViewFlowGridLayoutImpl extends UICollectionViewFlowLayout {
     _owner: WeakRef<FancyListView>;
     contentHeight: number = 0;
     cache: Array<UICollectionViewLayoutAttributes> = [];
+
     get contentWidth() {
         const owner = this._owner ? this._owner.get() : null;
         if (!owner) return 0;
@@ -728,7 +765,8 @@ class UICollectionViewFlowStaggeredLayoutImpl extends UICollectionViewFlowLayout
             );
         }
         let column = 0;
-        const count = this.collectionView.numberOfItemsInSection(0);
+        //const count = this.collectionView.numberOfItemsInSection(0);
+        const count = owner.items ? owner.items.length : 0;
         yOffset.length = count;
         yOffset.fill(0);
         for (let i = 0; i < count; i++) {
@@ -849,7 +887,7 @@ class UICollectionViewFlowLinearLayoutImpl extends UICollectionViewFlowLayout {
     }
 
     public shouldInvalidateLayoutForBoundsChange(): boolean {
-        return true
+        return true;
     }
 
     public layoutAttributesForElementsInRect(rect: CGRect) {

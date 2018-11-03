@@ -1,5 +1,11 @@
 import {
-    CoercibleProperty, KeyedTemplate, makeParser, makeValidator, PercentLength, Property, Template,
+    CoercibleProperty,
+    KeyedTemplate,
+    makeParser,
+    makeValidator,
+    PercentLength,
+    Property,
+    Template,
     View
 } from 'tns-core-modules/ui/core/view';
 import { parse, parseMultipleTemplates } from 'tns-core-modules/ui/builder';
@@ -12,7 +18,7 @@ import { addWeakEventListener, removeWeakEventListener } from 'tns-core-modules/
 export const ITEMLOADING = 'itemLoading';
 export const LOADMOREITEMS = 'loadMoreItems';
 export const ITEMTAP = 'itemTap';
-export const SCROLLEVENT = "scroll";
+export const SCROLLEVENT = 'scroll';
 
 export type Orientation = 'horizontal' | 'vertical';
 export * from 'tns-core-modules/ui/core/view';
@@ -49,6 +55,7 @@ export interface ItemEventData {
 
 export interface ItemsSource {
     length: number;
+
     getItem(index: number): any;
 }
 
@@ -131,7 +138,6 @@ export abstract class FancyListViewBase extends View {
     }
 
 
-
     public onLayout(left: number, top: number, right: number, bottom: number) {
         super.onLayout(left, top, right, bottom);
         this._innerWidth =
@@ -200,7 +206,8 @@ export abstract class FancyListViewBase extends View {
     }
 }
 
-export type LayoutType =  'grid' | 'linear' |'staggered';
+export type LayoutType = 'grid' | 'linear' | 'staggered';
+
 export enum LayoutTypeOptions {
     GRID = 'grid',
     LINEAR = 'linear',
@@ -208,9 +215,9 @@ export enum LayoutTypeOptions {
 }
 
 
-export const itemsProperty = new Property<FancyListViewBase, any[]>({
+export const itemsProperty = new Property<FancyListViewBase, any[] | ItemsSource>({
     name: 'items',
-    valueChanged: (target, oldValue, newValue) => {
+    valueChanged: (target, oldValue: any, newValue: any) => {
         if (oldValue instanceof Observable) {
             removeWeakEventListener(
                 oldValue,
@@ -232,7 +239,6 @@ export const itemsProperty = new Property<FancyListViewBase, any[]>({
         target.refresh();
     }
 });
-
 itemsProperty.register(FancyListViewBase);
 
 export const itemTemplateProperty = new Property<FancyListViewBase,
@@ -253,31 +259,31 @@ export const itemTemplatesProperty = new Property<FancyListViewBase,
         if (typeof value === 'string') {
             return parseMultipleTemplates(value);
         }
-
         return value;
     }
 });
 itemTemplatesProperty.register(FancyListViewBase);
 
 export const layoutTypeProperty = new Property<FancyListViewBase, LayoutType>({
-    name: 'layoutType'
+    name: 'layoutType',
+    affectsLayout: true,
 });
-
 layoutTypeProperty.register(FancyListViewBase);
 
 export const spanCountProperty = new Property<FancyListViewBase, number>({
     name: 'spanCount',
     defaultValue: 1,
+    affectsLayout: true,
     valueConverter: v => parseInt(v, 10)
 });
-
 spanCountProperty.register(FancyListViewBase);
-const defaultItemWidth: PercentLength = 'auto';
 
+const defaultItemWidth: PercentLength = 'auto';
 export const itemWidthProperty = new CoercibleProperty<FancyListViewBase,
     PercentLength>({
     name: 'itemWidth',
-    defaultValue: { value: 1, unit: '%' },
+    affectsLayout: true,
+    defaultValue: {value: 1, unit: '%'},
     equalityComparer: PercentLength.equals,
     valueConverter: PercentLength.parse,
     coerceValue: (target, value) => {
@@ -291,18 +297,17 @@ export const itemWidthProperty = new CoercibleProperty<FancyListViewBase,
             autoEffectiveItemWidth,
             target._innerWidth
         );
-
         target.refresh();
     }
 });
-
 itemWidthProperty.register(FancyListViewBase);
 
 const defaultItemHeight: PercentLength = 'auto';
 export const itemHeightProperty = new CoercibleProperty<FancyListViewBase,
     PercentLength>({
     name: 'itemHeight',
-    defaultValue: { value: 0.2, unit: '%' },
+    affectsLayout: true,
+    defaultValue: {value: 0.2, unit: '%'},
     coerceValue: (target, value) => {
         // We coerce to default value if we don't have display density.
         return target.nativeView ? value : defaultItemHeight;
@@ -319,6 +324,7 @@ export const itemHeightProperty = new CoercibleProperty<FancyListViewBase,
         target.refresh();
     }
 });
+
 itemHeightProperty.register(FancyListViewBase);
 
 const converter = makeParser<Orientation>(
@@ -342,7 +348,8 @@ orientationProperty.register(FancyListViewBase);
 
 export const maxProperty = new Property<FancyListViewBase, PercentLength>({
     name: 'max',
-    defaultValue: { value: 1, unit: '%' },
+    affectsLayout: true,
+    defaultValue: {value: 1, unit: '%'},
     equalityComparer: PercentLength.equals,
     valueConverter: PercentLength.parse
 });
@@ -351,7 +358,8 @@ maxProperty.register(FancyListViewBase);
 
 export const minProperty = new Property<FancyListViewBase, PercentLength>({
     name: 'min',
-    defaultValue: { value: 1 / 3, unit: '%' },
+    affectsLayout: true,
+    defaultValue: {value: 1 / 3, unit: '%'},
     equalityComparer: PercentLength.equals,
     valueConverter: PercentLength.parse
 });
