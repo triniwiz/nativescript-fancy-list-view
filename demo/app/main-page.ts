@@ -21,3 +21,7 @@ export function grid(args) {
 export function stagger(args) {
   topmost().navigate('stagger-page');
 }
+
+export function selection(args) {
+    topmost().navigate('selection/selection-page');
+}

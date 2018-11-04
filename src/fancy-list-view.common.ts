@@ -19,7 +19,10 @@ export const ITEMLOADING = 'itemLoading';
 export const LOADMOREITEMS = 'loadMoreItems';
 export const ITEMTAP = 'itemTap';
 export const SCROLLEVENT = 'scroll';
-
+export const ITEMSELECTED = 'itemSelected';
+export const ITEMSELECTING = 'itemSelecting';
+export const ITEMDESELECTED = 'itemDeselected';
+export const ITEMDESELECTING = 'itemDeselecting';
 export type Orientation = 'horizontal' | 'vertical';
 export * from 'tns-core-modules/ui/core/view';
 export namespace knownTemplates {
@@ -99,6 +102,11 @@ export abstract class FancyListViewBase extends View {
     public _effectiveItemWidth: number;
     public orientation: Orientation;
     private _itemTemplateSelectorBindable = new Label();
+    public itemReorder: boolean = false;
+    public selectionBehavior: 'None' | 'Press' | 'LongPress' = 'None';
+    public multipleSelection: boolean = false;
+
+    public abstract getSelectedItems(): any[];
 
     private _itemIdGenerator: (item: any, index: number, items: any) => number = (_item: any,
                                                                                   index: number) => index

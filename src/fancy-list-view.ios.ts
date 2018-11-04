@@ -3,9 +3,10 @@ import {
     EventData,
     FancyListViewBase,
     hideScrollBarProperty,
+    ITEMDESELECTED,
     ItemEventData,
     ITEMLOADING,
-    ITEMTAP,
+    ITEMSELECTED,
     itemTemplatesProperty,
     LayoutType,
     LayoutTypeOptions,
@@ -26,21 +27,47 @@ import { StackLayout } from 'tns-core-modules/ui/layouts/stack-layout';
 
 global.moduleMerge(common, exports);
 
+
+class FancyListViewLongPress extends NSObject {
+    private _owner: WeakRef<FancyListView>;
+
+    public static initWithOwner(owner: WeakRef<FancyListView>): FancyListViewLongPress {
+        let tap: FancyListViewLongPress = new FancyListViewLongPress();
+        tap._owner = owner;
+        return tap;
+    }
+
+    longPress(args: UILongPressGestureRecognizer) {
+        const owner = this._owner.get();
+        const p = args.locationInView(owner.ios);
+        let indexPath = owner.ios.indexPathForItemAtPoint(p);
+        owner.ios.selectItemAtIndexPathAnimatedScrollPosition(indexPath, false, UICollectionViewScrollPosition.None);
+    }
+
+    public static ObjCExposedMethods = {
+        'longPress': {returns: interop.types.void, params: [interop.types.id]}
+    };
+}
+
 export class FancyListView extends FancyListViewBase {
     heightMeasureSpec: number;
     _isDataDirty: any;
     widthMeasureSpec: number;
     _preparingCell: boolean;
     nativeViewProtected: UICollectionView;
-    _layout: any;
+    _layout: UICollectionViewFlowGridLayoutImpl | UICollectionViewFlowStaggeredLayoutImpl | UICollectionViewFlowLinearLayoutImpl;
     _delegate: any;
     _visibleRect: any;
     public _measuredMap: Map<number, CGSize>;
     _map: Map<FancyListViewCell, View>;
+    _itemsSelected: any;
+    _selectedIndexPaths: any[];
     private _dataSource;
 
     constructor() {
         super();
+        this._selectedIndexPaths = [];
+        this._itemsSelected = [];
         this._map = new Map<FancyListViewCell, View>();
         this._measuredMap = new Map<number, CGSize>();
     }
@@ -67,6 +94,7 @@ export class FancyListView extends FancyListViewBase {
         nativeView.backgroundColor = UIColor.clearColor;
         nativeView.autoresizesSubviews = false;
         nativeView.autoresizingMask = UIViewAutoresizing.None;
+        nativeView.allowsMultipleSelection = true;
         nativeView.registerClassForCellWithReuseIdentifier(
             FancyListViewCell.class(),
             this._defaultTemplate.key
@@ -90,11 +118,24 @@ export class FancyListView extends FancyListViewBase {
         return this._map.size;
     }
 
+    public getSelectedItems(): any[] {
+        return this._itemsSelected;
+    }
+
     @profile
     public onLoaded() {
         super.onLoaded();
+        if (this.selectionBehavior !== 'Press') {
+            this.ios.allowsSelection = false;
+        }
+        if (this.selectionBehavior === 'LongPress') {
+            const longPressGesture = UILongPressGestureRecognizer.alloc().initWithTargetAction(FancyListViewLongPress.initWithOwner(new WeakRef<FancyListView>(this)), 'longPress');
+            longPressGesture.minimumPressDuration = 0.5;
+            longPressGesture.delaysTouchesBegan = true;
+            this.ios.addGestureRecognizer(longPressGesture);
+        }
         if (this._isDataDirty) {
-            this.refresh();
+            this.ios.reloadData();
         }
         this.ios.delegate = this._delegate;
     }
@@ -215,8 +256,8 @@ export class FancyListView extends FancyListViewBase {
         );
         super.measure(widthMeasureSpec, heightMeasureSpec);
         if (changed) {
-           // this.ios.reloadData();
             this._layout.invalidateLayout();
+            this._layout.prepareLayout();
         }
     }
 
@@ -237,13 +278,19 @@ export class FancyListView extends FancyListViewBase {
         this._map.forEach((view, cell: FancyListViewCell) => {
             if (!(view.bindingContext instanceof Observable)) {
                 view.bindingContext = null;
+                const indexPath = this.ios.indexPathForCell(cell);
+                if (indexPath) {
+                    this._prepareItem(view, indexPath.row);
+                }
             }
             return true;
         });
+
         if (this.isLoaded) {
-            this.ios.reloadData();
             this._layout.invalidateLayout();
+            this._layout.prepareLayout();
             this.requestLayout();
+            this.ios.setNeedsLayout();
             this._isDataDirty = false;
         } else {
             this._isDataDirty = true;
@@ -358,26 +405,26 @@ export class FancyListView extends FancyListViewBase {
             switch (type) {
                 case LayoutTypeOptions.GRID:
                     width = this._innerWidth / this.spanCount;
-                    this.ios.collectionViewLayout = this._layout = UICollectionViewFlowGridLayoutImpl.initWithOwner(
+                    this._layout = UICollectionViewFlowGridLayoutImpl.initWithOwner(
                         new WeakRef(this)
                     );
                     break;
                 case LayoutTypeOptions.STAGGERED:
                     width = this._innerWidth / this.spanCount;
-                    this.ios.collectionViewLayout = this._layout = UICollectionViewFlowStaggeredLayoutImpl.initWithOwner(
+                    this._layout = UICollectionViewFlowStaggeredLayoutImpl.initWithOwner(
                         new WeakRef(this)
                     );
                     break;
                 default:
                     width = this._effectiveItemWidth;
                     height = this._effectiveItemHeight;
-                    this.ios.collectionViewLayout = this._layout = UICollectionViewFlowLinearLayoutImpl.initWithOwner(
+                    this._layout = UICollectionViewFlowLinearLayoutImpl.initWithOwner(
                         new WeakRef(this)
                     );
                     break;
             }
-            this._layout.invalidateLayout();
 
+            this.ios.setCollectionViewLayoutAnimated(this._layout, true);
         }
     }
 
@@ -428,9 +475,18 @@ export class FancyListView extends FancyListViewBase {
 
 export class FancyListViewCell extends UICollectionViewCell {
     public owner: WeakRef<View>;
+    private _selected: boolean;
 
     public get view(): View {
         return this.owner ? this.owner.get() : null;
+    }
+
+    public set selected(selected: boolean) {
+        this._selected = selected;
+    }
+
+    public get selected() {
+        return this._selected;
     }
 
     public static initWithEmptyBackground(): FancyListViewCell {
@@ -454,10 +510,10 @@ export class FancyListViewCell extends UICollectionViewCell {
 @ObjCClass(UICollectionViewDelegate, UICollectionViewDelegateFlowLayout)
 class UICollectionDelegateImpl extends NSObject
     implements UICollectionViewDelegate, UICollectionViewDelegateFlowLayout {
-    private _owner: WeakRef<FancyListView>;
+    _owner: WeakRef<FancyListView>;
 
     public static initWithOwner(owner: WeakRef<FancyListView>): UICollectionDelegateImpl {
-        const delegate = UICollectionDelegateImpl.new() as UICollectionDelegateImpl;
+        const delegate = new UICollectionDelegateImpl();
         delegate._owner = owner;
         return delegate;
     }
@@ -537,23 +593,82 @@ class UICollectionDelegateImpl extends NSObject
         }
     }
 
-    public collectionViewDidSelectItemAtIndexPath(collectionView: UICollectionView,
-                                                  indexPath: NSIndexPath) {
-        const cell = collectionView.cellForItemAtIndexPath(indexPath);
-        const owner = this._owner.get();
+    public collectionViewShouldSelectItemAtIndexPath(collectionView: UICollectionView, indexPath: NSIndexPath): boolean {
+        const owner = this._owner && this._owner.get() ? this._owner.get() : null;
+        if (!owner) return false;
+        if (owner.selectionBehavior === 'None') {
+            return false;
+        } else {
 
-        owner.notify<ItemEventData>({
-            eventName: ITEMTAP,
-            object: owner,
-            index: indexPath.row,
-            view: (cell as FancyListViewCell).view,
+            const isSelected = collectionView.indexPathsForSelectedItems.containsObject(indexPath);
+            if (isSelected) {
+                collectionView.deselectItemAtIndexPathAnimated(indexPath, false);
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    public collectionViewShouldDeselectItemAtIndexPath(collectionView: UICollectionView, indexPath: NSIndexPath): boolean {
+        const owner = this._owner && this._owner.get() ? this._owner.get() : null;
+        if (!owner) return false;
+        if (owner.selectionBehavior === 'None') {
+            return false;
+        } else {
+
+            const isSelected = collectionView.indexPathsForSelectedItems.containsObject(indexPath);
+            if (!isSelected) {
+                collectionView.selectItemAtIndexPathAnimatedScrollPosition(indexPath, false, UICollectionViewScrollPosition.None);
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    public collectionViewDidSelectItemAtIndexPath(collectionView: UICollectionView, indexPath: NSIndexPath): void {
+        const cell = collectionView.cellForItemAtIndexPath(indexPath) as FancyListViewCell;
+        cell.highlighted = false;
+        const listView = this._owner && this._owner.get() ? this._owner.get() : null;
+        if (!listView) return;
+        const index = indexPath.row;
+        if (listView.selectionBehavior === 'None') return;
+        cell.selected = true;
+        const items = listView.items as any;
+        const item = items.getItem ? items.getItem(index) : items[index];
+        listView._itemsSelected.push(item);
+        listView.notify<ItemEventData>({
+            eventName: ITEMSELECTED,
+            object: listView,
+            index: index,
+            view: listView._map.get(cell),
             android: undefined,
             ios: cell
         });
+    }
 
-        cell.highlighted = false;
-
-        return indexPath;
+    public collectionViewDidDeselectItemAtIndexPath(collectionView: UICollectionView, indexPath: NSIndexPath): void {
+        const listView = this._owner && this._owner.get() ? this._owner.get() : null;
+        if (!listView) return;
+        const index = indexPath.row;
+        if (listView.selectionBehavior === 'None') return;
+        const cell = collectionView.cellForItemAtIndexPath(indexPath) as FancyListViewCell;
+        const items = listView.items as any;
+        const item = items.getItem ? items.getItem(index) : items[index];
+        listView._itemsSelected = listView._itemsSelected.filter(selected => {
+            if (item !== selected) {
+                return selected;
+            }
+        });
+        listView.notify<ItemEventData>({
+            eventName: ITEMDESELECTED,
+            object: listView,
+            index: index,
+            view: listView._map.get(cell),
+            android: undefined,
+            ios: cell
+        });
     }
 }
 
@@ -570,7 +685,9 @@ class UICollectionViewDataSourceImpl extends NSObject
 
     public collectionViewCanMoveItemAtIndexPath(collectionView: UICollectionView,
                                                 indexPath: NSIndexPath): boolean {
-        return true;
+        const owner = this._owner && this._owner.get() ? this._owner.get() : null;
+        if (!owner) return false;
+        return owner.itemReorder;
     }
 
     public collectionViewCellForItemAtIndexPath(collectionView: UICollectionView,
@@ -583,6 +700,7 @@ class UICollectionViewDataSourceImpl extends NSObject
                 indexPath
             ) || FancyListViewCell.initWithEmptyBackground();
 
+        cell.selected = false;
         if (owner) {
             owner._prepareCell(<FancyListViewCell>cell, indexPath);
             const cellView: any = (cell as FancyListViewCell).view;
@@ -724,7 +842,7 @@ class UICollectionViewFlowGridLayoutImpl extends UICollectionViewFlowLayout {
     }
 
     public shouldInvalidateLayoutForBoundsChange(): boolean {
-        return true
+        return true;
     }
 }
 
@@ -765,7 +883,6 @@ class UICollectionViewFlowStaggeredLayoutImpl extends UICollectionViewFlowLayout
             );
         }
         let column = 0;
-        //const count = this.collectionView.numberOfItemsInSection(0);
         const count = owner.items ? owner.items.length : 0;
         yOffset.length = count;
         yOffset.fill(0);
@@ -804,7 +921,7 @@ class UICollectionViewFlowStaggeredLayoutImpl extends UICollectionViewFlowLayout
     }
 
     public shouldInvalidateLayoutForBoundsChange(): boolean {
-        return true
+        return true;
     }
 
     public layoutAttributesForElementsInRect(rect: CGRect) {
@@ -855,7 +972,8 @@ class UICollectionViewFlowLinearLayoutImpl extends UICollectionViewFlowLayout {
         let xOffset = [];
         let yOffset = [];
         let column = 1;
-        const count = this.collectionView.numberOfItemsInSection(0);
+        //const count = this.collectionView.numberOfItemsInSection(0);
+        const count = owner.items ? owner.items.length : 0;
         yOffset.length = count;
         yOffset.fill(0);
         for (let i = 0; i < count; i++) {

@@ -3,7 +3,7 @@ import { FancyListView } from 'nativescript-fancy-list-view';
 import { ObservableArray } from 'tns-core-modules/data/observable-array/observable-array';
 
 export class HelloWorldModel extends Observable {
-    public items = new ObservableArray([{
+    public items = new ObservableArray([<any>{
         title: 'Item 1',
         image: '~/images/Hulk_(comics_character).png'
     }, {
