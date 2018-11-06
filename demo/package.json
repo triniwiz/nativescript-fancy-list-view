@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "nativescript-fancy-list-view": "../src",
+    "nativescript-image-cache-it": "^4.0.8",
     "nativescript-theme-core": "^1.0.4",
     "nativescript-unit-test-runner": "^0.3.4",
     "tns-core-modules": "^5.0.1"

@@ -1,5 +1,5 @@
 import {
-    CoercibleProperty,
+    CoercibleProperty, CSSType,
     KeyedTemplate,
     makeParser,
     makeValidator,
@@ -12,7 +12,7 @@ import { parse, parseMultipleTemplates } from 'tns-core-modules/ui/builder';
 import { Label } from 'tns-core-modules/ui/label/label';
 import { messageType, write } from 'tns-core-modules/trace';
 import { Observable } from 'tns-core-modules/data/observable';
-import { ChangedData, ObservableArray } from 'tns-core-modules/data/observable-array';
+import { ChangedData, ChangeType, ObservableArray } from 'tns-core-modules/data/observable-array';
 import { addWeakEventListener, removeWeakEventListener } from 'tns-core-modules/ui/core/weak-event-listener';
 
 export const ITEMLOADING = 'itemLoading';
@@ -23,6 +23,7 @@ export const ITEMSELECTED = 'itemSelected';
 export const ITEMSELECTING = 'itemSelecting';
 export const ITEMDESELECTED = 'itemDeselected';
 export const ITEMDESELECTING = 'itemDeselecting';
+export const PULLTOREFRESHINITIATEDEVENT = 'pullToRefreshInitiated';
 export type Orientation = 'horizontal' | 'vertical';
 export * from 'tns-core-modules/ui/core/view';
 export namespace knownTemplates {
@@ -65,6 +66,7 @@ export interface ItemsSource {
 const autoEffectiveItemHeight = 100;
 const autoEffectiveItemWidth = 100;
 
+@CSSType("FancyListView")
 export abstract class FancyListViewBase extends View {
     // TODO: get rid of such hacks.
     public static knownFunctions = ['itemTemplateSelector', 'itemIdGenerator']; // See component-builder.ts isKnownFunction
@@ -83,6 +85,7 @@ export abstract class FancyListViewBase extends View {
     public static itemTapEvent = ITEMTAP;
     public static loadMoreItemsEvent = LOADMOREITEMS;
     public static scrollEvent = SCROLLEVENT;
+    public pullToRefresh: boolean = false;
     public _defaultTemplate: KeyedTemplate = {
         key: 'default',
         createView: () => {
@@ -167,6 +170,7 @@ export abstract class FancyListViewBase extends View {
         );
     }
 
+    abstract notifyPullToRefreshFinished():void;
     abstract refresh(): void;
 
     public _getItemTemplate(index: number): KeyedTemplate {
@@ -204,7 +208,13 @@ export abstract class FancyListViewBase extends View {
         return lbl;
     }
 
-    _updateNativeItems(args: ChangedData<any>): void {
+   _updateNativeItems(args: ChangedData<any>): void {
+        /* Use args to reload/insert/delete
+        if(args.action === ChangeType.Update){
+            console.log(args.addedCount);
+            console.log(args.removed);
+        }*/
+
         this.refresh();
     }
 
@@ -243,7 +253,6 @@ export const itemsProperty = new Property<FancyListViewBase, any[] | ItemsSource
                 target
             );
         }
-
         target.refresh();
     }
 });

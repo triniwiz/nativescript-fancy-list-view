@@ -13,10 +13,13 @@ import {
     layoutTypeProperty,
     Orientation,
     orientationProperty,
+    PULLTOREFRESHINITIATEDEVENT,
     spanCountProperty
 } from './fancy-list-view.common';
 import { KeyedTemplate, layout, View } from 'tns-core-modules/ui/core/view';
 import { Observable } from 'tns-core-modules/data/observable/observable';
+import { ProxyViewContainer } from 'tns-core-modules/ui/proxy-view-container';
+import { StackLayout } from 'tns-core-modules/ui/layouts/stack-layout';
 
 global.moduleMerge(common, exports);
 
@@ -45,7 +48,8 @@ export class FancyRecyclerView extends android.support.v7.widget.RecyclerView {
 }
 
 export class FancyListView extends FancyListViewBase {
-    nativeViewProtected: android.support.v7.widget.RecyclerView;
+    nativeViewProtected: android.support.v4.widget.SwipeRefreshLayout;
+    listView: android.support.v7.widget.RecyclerView;
     public _realizedItems = new Map<android.view.View, View>();
     _random: any;
     _itemsSelected: any[];
@@ -60,23 +64,44 @@ export class FancyListView extends FancyListViewBase {
         this._itemsSelected = [];
         this._staggeredMap = new Map<number, number>();
         this._random = new java.util.Random();
-        const fancyList = new FancyRecyclerView(this._context, new WeakRef(this));
+        const refresh = new android.support.v4.widget.SwipeRefreshLayout(this._context);
+        this.listView = new FancyRecyclerView(this._context, new WeakRef(this));
         ensureFancyListViewAdapterClass();
         const adapter = new FancyListViewAdapterClass(new WeakRef(this));
         adapter.setHasStableIds(true);
-        fancyList.setAdapter(adapter);
-        (<any>fancyList).adapter = adapter;
+        this.listView.setAdapter(adapter);
+        (<any>this.listView).adapter = adapter;
         const lm = new android.support.v7.widget.LinearLayoutManager(this._context);
         lm.setOrientation(android.support.v7.widget.LinearLayoutManager.VERTICAL);
-        fancyList.setLayoutManager(lm);
-        return fancyList;
+        this.listView.setLayoutManager(lm);
+        const params = new android.support.v7.widget.RecyclerView.LayoutParams(
+            android.support.v7.widget.RecyclerView.LayoutParams.MATCH_PARENT,
+            android.support.v7.widget.RecyclerView.LayoutParams.MATCH_PARENT
+        );
+        this.listView.setLayoutParams(params);
+        const linearLayout = new android.widget.LinearLayout(this._context);
+        linearLayout.addView(this.listView);
+        refresh.addView(linearLayout);
+        refresh.setEnabled(false);
+        return refresh;
     }
 
     public initNativeView() {
         super.initNativeView();
-        const nativeView = this.nativeViewProtected;
+        const that = new WeakRef(this);
+        this.nativeViewProtected.setOnRefreshListener(new android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener({
+            onRefresh() {
+                const owner = that.get();
+                owner.notify({
+                    eventName: PULLTOREFRESHINITIATEDEVENT,
+                    object: owner
+                });
+            }
+        }));
+        this.nativeViewProtected.setEnabled(false);
+        const nativeView = this.listView;
         const adapter = (<any>nativeView).adapter;
-        adapter.owner = new WeakRef(this);
+        adapter.owner = that;
         nativeView.setAdapter(adapter);
         if (this.layoutType) {
             this.setLayoutType(this.layoutType);
@@ -91,8 +116,12 @@ export class FancyListView extends FancyListViewBase {
         itemHeightProperty.coerce(this);
     }
 
+    public onLoaded() {
+        super.onLoaded();
+    }
+
     public [orientationProperty.getDefault](): Orientation {
-        const layoutManager = this.nativeViewProtected.getLayoutManager() as any;
+        const layoutManager = this.listView.getLayoutManager() as any;
         if (
             layoutManager.getOrientation() ===
             android.support.v7.widget.LinearLayoutManager.HORIZONTAL
@@ -104,7 +133,7 @@ export class FancyListView extends FancyListViewBase {
     }
 
     private setOrientation(value: Orientation) {
-        const layoutManager = this.nativeView.getLayoutManager() as any;
+        const layoutManager = this.listView.getLayoutManager() as any;
 
         if (layoutManager instanceof android.support.v7.widget.GridLayoutManager) {
             if (value === 'horizontal') {
@@ -141,7 +170,7 @@ export class FancyListView extends FancyListViewBase {
             }
         }
 
-        this.nativeViewProtected.setLayoutManager(layoutManager);
+        this.listView.setLayoutManager(layoutManager);
     }
 
     public getSelectedItems(): any[] {
@@ -184,7 +213,7 @@ export class FancyListView extends FancyListViewBase {
             }
             return true;
         });
-        const nativeView = this.nativeViewProtected;
+        const nativeView = this.listView;
         nativeView.setAdapter(null);
         // (<any>nativeView).itemClickListener.owner = null;
         (<any>nativeView).adapter.owner = null;
@@ -197,8 +226,14 @@ export class FancyListView extends FancyListViewBase {
         this.refresh();
     }
 
+    public notifyPullToRefreshFinished(): void {
+        if (this.nativeViewProtected) {
+            this.nativeViewProtected.setRefreshing(false);
+        }
+    }
+
     public refresh(): void {
-        const nativeView = this.nativeViewProtected;
+        const nativeView = this.listView;
         if (!nativeView || !nativeView.getAdapter()) {
             return;
         }
@@ -211,6 +246,7 @@ export class FancyListView extends FancyListViewBase {
         });
         this.setLayoutType(this.layoutType);
         this.setSpanCount(this.spanCount);
+        this.listView.requestLayout();
         nativeView.getAdapter().notifyDataSetChanged();
     }
 
@@ -225,7 +261,7 @@ export class FancyListView extends FancyListViewBase {
         if (value) {
             this._itemTemplatesInternal = this._itemTemplatesInternal.concat(value);
         }
-        this.nativeViewProtected.setAdapter(
+        this.listView.setAdapter(
             new FancyListViewAdapterClass(new WeakRef(this))
         );
         this.refresh();
@@ -233,12 +269,10 @@ export class FancyListView extends FancyListViewBase {
 
     [spanCountProperty.setNative](spanCount: number) {
         this.setSpanCount(spanCount);
-        this.refresh();
     }
 
     [layoutTypeProperty.setNative](type: string) {
         this.setLayoutType(type);
-        this.refresh();
     }
 
     public eachChildView(callback: (child: View) => boolean): void {
@@ -255,7 +289,7 @@ export class FancyListView extends FancyListViewBase {
     }
 
     private setSpanCount(count: number) {
-        const nativeView = this.nativeViewProtected;
+        const nativeView = this.listView;
         if (nativeView && this._effectiveItemWidth && this._innerWidth) {
             const lm = nativeView.getLayoutManager();
             if (
@@ -268,7 +302,7 @@ export class FancyListView extends FancyListViewBase {
     }
 
     private setLayoutType(type: string) {
-        const nativeView = this.nativeViewProtected;
+        const nativeView = this.listView;
         if (nativeView) {
             switch (type) {
                 case LayoutTypeOptions.GRID:
@@ -344,17 +378,14 @@ function ensureFancyListViewAdapterClass() {
             let view: View =
                 template.createView() || owner._getDefaultItemContent(viewType);
 
-            /*
             if (view instanceof View && !(view instanceof ProxyViewContainer)) {
-              owner._addView(view);
+                owner._addView(view);
             } else {
-              let sp = new StackLayout();
-              sp.addChild(view);
-              owner._addView(sp);
+                let sp = new StackLayout();
+                sp.addChild(view);
+                owner._addView(sp);
             }
-            */
 
-            owner._addView(view);
 
             owner._realizedItems.set(view.nativeView, view);
 
@@ -422,7 +453,7 @@ function ensureFancyListViewAdapterClass() {
             const owner = this.owner ? this.owner.get() : null;
             let id = i;
             if (owner && owner.items) {
-                const item = owner.items[i];
+                const item = (owner as any).items.getItem ? (owner as any).items.getItem(i) : owner.items[i];
                 if (item) {
                     id = owner.itemIdGenerator(item, i, owner.items);
                 }
@@ -441,8 +472,7 @@ function ensureFancyListViewAdapterClass() {
             const owner = this.owner ? this.owner.get() : null;
             if (owner) {
                 let template = owner._getItemTemplate(index);
-                let itemViewType = owner._itemTemplatesInternal.indexOf(template);
-                return itemViewType;
+                return owner._itemTemplatesInternal.indexOf(template);
             }
             return 0;
         }
@@ -505,7 +535,6 @@ class FancyListViewHolder
                     }
                 });
                 this.setIsSelected(false);
-
                 listView.notify<ItemEventData>({
                     eventName: ITEMDESELECTED,
                     object: listView,
@@ -557,7 +586,7 @@ class FancyListViewHolder
     public onLongClick(v: android.view.View) {
         const listView = this.list.get();
         const index = this.getAdapterPosition();
-        if (listView.selectionBehavior !== 'LongPress') {
+        if (listView.selectionBehavior === 'LongPress') {
             const items = listView.items as any;
             const item = items.getItem ? items.getItem(index) : items[index];
             if (listView.multipleSelection) {

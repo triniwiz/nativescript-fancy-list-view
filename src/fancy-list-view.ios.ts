@@ -18,18 +18,19 @@ import {
     paddingLeftProperty,
     paddingRightProperty,
     paddingTopProperty,
+    PULLTOREFRESHINITIATEDEVENT,
     spanCountProperty
 } from './fancy-list-view.common';
-import { KeyedTemplate, layout, Length, Observable, PercentLength, View } from 'tns-core-modules/ui/core/view';
+import { KeyedTemplate, layout, Length, PercentLength, View } from 'tns-core-modules/ui/core/view';
 import { profile } from 'tns-core-modules/profiling';
 import { ProxyViewContainer } from 'tns-core-modules/ui/proxy-view-container';
 import { StackLayout } from 'tns-core-modules/ui/layouts/stack-layout';
 
 global.moduleMerge(common, exports);
 
-
 class FancyListViewLongPress extends NSObject {
     private _owner: WeakRef<FancyListView>;
+    private isPressing: boolean;
 
     public static initWithOwner(owner: WeakRef<FancyListView>): FancyListViewLongPress {
         let tap: FancyListViewLongPress = new FancyListViewLongPress();
@@ -38,14 +39,165 @@ class FancyListViewLongPress extends NSObject {
     }
 
     longPress(args: UILongPressGestureRecognizer) {
-        const owner = this._owner.get();
-        const p = args.locationInView(owner.ios);
-        let indexPath = owner.ios.indexPathForItemAtPoint(p);
-        owner.ios.selectItemAtIndexPathAnimatedScrollPosition(indexPath, false, UICollectionViewScrollPosition.None);
+        if (args.state === UIGestureRecognizerState.Ended) {
+            this.isPressing = false;
+            return;
+        }
+        if (!this.isPressing) {
+            const owner = this._owner.get();
+            const p = args.locationInView(owner.ios);
+            let indexPath = owner.ios.indexPathForItemAtPoint(p);
+            const isSelected = owner._selectedIndexPaths.get(indexPath.row);
+            if (!owner.multipleSelection) {
+                if (!isSelected && owner._selectedIndexPaths.size > 0) {
+                    const array = Array.from(owner._selectedIndexPaths.values());
+                    owner.ios.deselectItemAtIndexPathAnimated(array[0], false);
+                    const index = array[0].row;
+                    const cell = owner.ios.cellForItemAtIndexPath(array[0]) as FancyListViewCell;
+                    owner._selectedIndexPaths.delete(array[0].row);
+                    const items = owner.items as any;
+                    const item = items.getItem ? items.getItem(index) : items[index];
+                    owner._itemsSelected = owner._itemsSelected.filter(selected => {
+                        if (item !== selected) {
+                            return selected;
+                        }
+                    });
+                    owner.notify<ItemEventData>({
+                        eventName: ITEMDESELECTED,
+                        object: owner,
+                        index: index,
+                        view: owner._map.get(cell),
+                        android: undefined,
+                        ios: cell
+                    });
+
+                    owner.ios.selectItemAtIndexPathAnimatedScrollPosition(indexPath, false, UICollectionViewScrollPosition.None);
+                    const selectedIndex = indexPath.row;
+                    owner._selectedIndexPaths.set(selectedIndex, indexPath);
+                    const selectedCell = owner.ios.cellForItemAtIndexPath(indexPath) as FancyListViewCell;
+                    const selectedItem = items.getItem ? items.getItem(selectedIndex) : items[selectedIndex];
+                    owner._itemsSelected.push(selectedItem);
+                    owner.notify<ItemEventData>({
+                        eventName: ITEMSELECTED,
+                        object: owner,
+                        index: selectedIndex,
+                        view: owner._map.get(selectedCell),
+                        android: undefined,
+                        ios: selectedCell
+                    });
+
+                } else {
+                    if (!isSelected && owner._selectedIndexPaths.size === 0) {
+                        const items = owner.items as any;
+                        const selectedIndex = indexPath.row;
+                        owner._selectedIndexPaths.set(selectedIndex, indexPath);
+                        const selectedCell = owner.ios.cellForItemAtIndexPath(indexPath) as FancyListViewCell;
+                        const selectedItem = items.getItem ? items.getItem(selectedIndex) : items[selectedIndex];
+                        owner._itemsSelected.push(selectedItem);
+                        owner.ios.selectItemAtIndexPathAnimatedScrollPosition(indexPath, false, UICollectionViewScrollPosition.None);
+                        owner.notify<ItemEventData>({
+                            eventName: ITEMSELECTED,
+                            object: owner,
+                            index: selectedIndex,
+                            view: owner._map.get(selectedCell),
+                            android: undefined,
+                            ios: selectedCell
+                        });
+                    } else {
+                        owner._selectedIndexPaths.delete(indexPath.row);
+                        owner.ios.deselectItemAtIndexPathAnimated(indexPath, false);
+                        const index = indexPath.row;
+                        const cell = owner.ios.cellForItemAtIndexPath(indexPath) as FancyListViewCell;
+                        owner._selectedIndexPaths.delete(indexPath.row);
+                        const items = owner.items as any;
+                        const item = items.getItem ? items.getItem(index) : items[index];
+                        owner._itemsSelected = owner._itemsSelected.filter(selected => {
+                            if (item !== selected) {
+                                return selected;
+                            }
+                        });
+                        owner.notify<ItemEventData>({
+                            eventName: ITEMDESELECTED,
+                            object: owner,
+                            index: index,
+                            view: owner._map.get(cell),
+                            android: undefined,
+                            ios: cell
+                        });
+                    }
+
+                }
+            } else {
+                if (isSelected) {
+                    owner.ios.deselectItemAtIndexPathAnimated(indexPath, false);
+                    owner._selectedIndexPaths.delete(indexPath.row);
+                    const index = indexPath.row;
+                    const cell = owner.ios.cellForItemAtIndexPath(indexPath) as FancyListViewCell;
+                    const items = owner.items as any;
+                    const item = items.getItem ? items.getItem(index) : items[index];
+                    owner._itemsSelected = owner._itemsSelected.filter(selected => {
+                        if (item !== selected) {
+                            return selected;
+                        }
+                    });
+                    owner.notify<ItemEventData>({
+                        eventName: ITEMDESELECTED,
+                        object: owner,
+                        index: index,
+                        view: owner._map.get(cell),
+                        android: undefined,
+                        ios: cell
+                    });
+                } else {
+                    const items = owner.items as any;
+                    const selectedIndex = indexPath.row;
+                    owner._selectedIndexPaths.set(selectedIndex, indexPath);
+                    const selectedCell = owner.ios.cellForItemAtIndexPath(indexPath) as FancyListViewCell;
+                    const selectedItem = items.getItem ? items.getItem(selectedIndex) : items[selectedIndex];
+                    owner._itemsSelected.push(selectedItem);
+                    owner.ios.selectItemAtIndexPathAnimatedScrollPosition(indexPath, false, UICollectionViewScrollPosition.None);
+                    owner.notify<ItemEventData>({
+                        eventName: ITEMSELECTED,
+                        object: owner,
+                        index: selectedIndex,
+                        view: owner._map.get(selectedCell),
+                        android: undefined,
+                        ios: selectedCell
+                    });
+                }
+            }
+            this.isPressing = true;
+        }
     }
 
     public static ObjCExposedMethods = {
         'longPress': {returns: interop.types.void, params: [interop.types.id]}
+    };
+}
+
+
+class FancyListViewRefresh extends NSObject {
+    private _owner: WeakRef<FancyListView>;
+
+    public static initWithOwner(owner: WeakRef<FancyListView>): FancyListViewRefresh {
+        let tap = new FancyListViewRefresh();
+        tap._owner = owner;
+        return tap;
+    }
+
+    refresh(args: UIRefreshControl) {
+        const owner = this._owner ? this._owner.get() : null;
+        if (!owner) return;
+        if (args.refreshing) {
+            owner.notify({
+                eventName: PULLTOREFRESHINITIATEDEVENT,
+                object: owner
+            });
+        }
+    }
+
+    public static ObjCExposedMethods = {
+        'refresh': {returns: interop.types.void, params: [interop.types.id]}
     };
 }
 
@@ -54,6 +206,7 @@ export class FancyListView extends FancyListViewBase {
     _isDataDirty: any;
     widthMeasureSpec: number;
     _preparingCell: boolean;
+    _updating: boolean;
     nativeViewProtected: UICollectionView;
     _layout: UICollectionViewFlowGridLayoutImpl | UICollectionViewFlowStaggeredLayoutImpl | UICollectionViewFlowLinearLayoutImpl;
     _delegate: any;
@@ -61,12 +214,14 @@ export class FancyListView extends FancyListViewBase {
     public _measuredMap: Map<number, CGSize>;
     _map: Map<FancyListViewCell, View>;
     _itemsSelected: any;
-    _selectedIndexPaths: any[];
+    _selectedIndexPaths: Map<number, NSIndexPath>;
+    _oldLayout: any;
+    _refreshControl: UIRefreshControl;
     private _dataSource;
 
     constructor() {
         super();
-        this._selectedIndexPaths = [];
+        this._selectedIndexPaths = new Map();
         this._itemsSelected = [];
         this._map = new Map<FancyListViewCell, View>();
         this._measuredMap = new Map<number, CGSize>();
@@ -76,6 +231,7 @@ export class FancyListView extends FancyListViewBase {
         this._layout = UICollectionViewFlowLinearLayoutImpl.initWithOwner(
             new WeakRef(this)
         );
+        this._oldLayout = this._layout;
         this._layout.minimumLineSpacing = 0;
         this._layout.minimumInteritemSpacing = 0;
         return UICollectionView.alloc().initWithFrameCollectionViewLayout(
@@ -103,6 +259,18 @@ export class FancyListView extends FancyListViewBase {
         nativeView.dataSource = this._dataSource = UICollectionViewDataSourceImpl.initWithOwner(
             new WeakRef(this)
         );
+
+        if (this.pullToRefresh) {
+            if (this.orientation === 'horizontal') {
+                nativeView.alwaysBounceHorizontal = true;
+            } else {
+                nativeView.alwaysBounceVertical = true;
+            }
+
+            this._refreshControl = UIRefreshControl.alloc().init();
+            this._refreshControl.addTargetActionForControlEvents(FancyListViewRefresh.initWithOwner(new WeakRef<FancyListView>(this)), 'refresh', UIControlEvents.ValueChanged);
+            nativeView.refreshControl = this._refreshControl;
+        }
 
         this._delegate = UICollectionDelegateImpl.initWithOwner(new WeakRef(this));
         this._setNativeClipToBounds();
@@ -135,7 +303,7 @@ export class FancyListView extends FancyListViewBase {
             this.ios.addGestureRecognizer(longPressGesture);
         }
         if (this._isDataDirty) {
-            this.ios.reloadData();
+            this.refresh();
         }
         this.ios.delegate = this._delegate;
     }
@@ -247,6 +415,7 @@ export class FancyListView extends FancyListViewBase {
     public onLayout(left: number, top: number, right: number, bottom: number) {
         super.onLayout(left, top, right, bottom);
         this.setLayoutType(this.layoutType);
+        this.ios.reloadData();
     }
 
     public measure(widthMeasureSpec: number, heightMeasureSpec: number): void {
@@ -257,7 +426,6 @@ export class FancyListView extends FancyListViewBase {
         super.measure(widthMeasureSpec, heightMeasureSpec);
         if (changed) {
             this._layout.invalidateLayout();
-            this._layout.prepareLayout();
         }
     }
 
@@ -271,29 +439,29 @@ export class FancyListView extends FancyListViewBase {
         }
     }
 
-    public refresh() {
-        this.setLayoutType(this.layoutType);
 
-        // clear bindingContext when it is not observable because otherwise bindings to items won't reevaluate
-        this._map.forEach((view, cell: FancyListViewCell) => {
-            if (!(view.bindingContext instanceof Observable)) {
-                view.bindingContext = null;
-                const indexPath = this.ios.indexPathForCell(cell);
-                if (indexPath) {
-                    this._prepareItem(view, indexPath.row);
-                }
-            }
-            return true;
-        });
-
-        if (this.isLoaded) {
+    public notifyPullToRefreshFinished() {
+        if (this._refreshControl) {
+            this._refreshControl.endRefreshing();
+            this.ios.reloadData();
             this._layout.invalidateLayout();
-            this._layout.prepareLayout();
             this.requestLayout();
-            this.ios.setNeedsLayout();
+        }
+    }
+
+    public refresh() {
+        if (this.isLoaded) {
+            if (!this.pullToRefresh) {
+                this.ios.reloadData();
+                this._layout.invalidateLayout();
+                this.requestLayout();
+            }
             this._isDataDirty = false;
         } else {
             this._isDataDirty = true;
+            if (this.ios) {
+                this.ios.reloadData();
+            }
         }
     }
 
@@ -393,38 +561,32 @@ export class FancyListView extends FancyListViewBase {
         if (nativeView && this._innerWidth && this.layoutType) {
             let width;
             let height;
-            this._measuredMap.forEach((CGSize, index) => {
-
-            });
-            this._map.forEach((view, cell: FancyListViewCell) => {
-                if (!(view.bindingContext instanceof Observable)) {
-                    view.bindingContext = null;
-                }
-                return true;
-            });
             switch (type) {
                 case LayoutTypeOptions.GRID:
                     width = this._innerWidth / this.spanCount;
-                    this._layout = UICollectionViewFlowGridLayoutImpl.initWithOwner(
+                    this._layout = null;
+                    this.ios.collectionViewLayout = this._layout = UICollectionViewFlowGridLayoutImpl.initWithOwner(
                         new WeakRef(this)
                     );
                     break;
                 case LayoutTypeOptions.STAGGERED:
                     width = this._innerWidth / this.spanCount;
-                    this._layout = UICollectionViewFlowStaggeredLayoutImpl.initWithOwner(
+                    this._layout = null;
+                    this._measuredMap.clear();
+                    this.ios.collectionViewLayout = this._layout = UICollectionViewFlowStaggeredLayoutImpl.initWithOwner(
                         new WeakRef(this)
                     );
                     break;
                 default:
                     width = this._effectiveItemWidth;
                     height = this._effectiveItemHeight;
-                    this._layout = UICollectionViewFlowLinearLayoutImpl.initWithOwner(
+                    this._layout = null;
+                    this.ios.collectionViewLayout = this._layout = UICollectionViewFlowLinearLayoutImpl.initWithOwner(
                         new WeakRef(this)
                     );
                     break;
             }
-
-            this.ios.setCollectionViewLayoutAnimated(this._layout, true);
+            ///this.ios.setCollectionViewLayoutAnimated(this._layout, true);
         }
     }
 
@@ -576,7 +738,6 @@ class UICollectionDelegateImpl extends NSObject
                                                            cell: UICollectionViewCell,
                                                            indexPath: NSIndexPath) {
         const owner = this._owner && this._owner.get() ? this._owner.get() : null;
-
         if (indexPath.row === owner.items.length - 1) {
             owner.notify<EventData>({
                 eventName: LOADMOREITEMS,
@@ -599,13 +760,83 @@ class UICollectionDelegateImpl extends NSObject
         if (owner.selectionBehavior === 'None') {
             return false;
         } else {
+            if (owner._selectedIndexPaths.size === 0) return true;
+            const isSelected = owner._selectedIndexPaths.get(indexPath.row);
+            if (!owner.multipleSelection) {
+                if (!isSelected && owner._selectedIndexPaths.size > 0) {
+                    const array = Array.from(owner._selectedIndexPaths.values());
+                    collectionView.deselectItemAtIndexPathAnimated(array[0], false);
+                    const index = array[0].row;
+                    const cell = collectionView.cellForItemAtIndexPath(array[0]) as FancyListViewCell;
+                    owner._selectedIndexPaths.delete(array[0].row);
+                    const items = owner.items as any;
+                    const item = items.getItem ? items.getItem(index) : items[index];
+                    owner._itemsSelected = owner._itemsSelected.filter(selected => {
+                        if (item !== selected) {
+                            return selected;
+                        }
+                    });
+                    owner.notify<ItemEventData>({
+                        eventName: ITEMDESELECTED,
+                        object: owner,
+                        index: index,
+                        view: owner._map.get(cell),
+                        android: undefined,
+                        ios: cell
+                    });
+                } else {
+                    if (isSelected && owner._selectedIndexPaths.size === 0) {
+                        return true;
+                    } else {
+                        owner._selectedIndexPaths.delete(indexPath.row);
+                        collectionView.deselectItemAtIndexPathAnimated(indexPath, false);
+                        const index = indexPath.row;
+                        const cell = collectionView.cellForItemAtIndexPath(indexPath) as FancyListViewCell;
+                        owner._selectedIndexPaths.delete(indexPath.row);
+                        const items = owner.items as any;
+                        const item = items.getItem ? items.getItem(index) : items[index];
+                        owner._itemsSelected = owner._itemsSelected.filter(selected => {
+                            if (item !== selected) {
+                                return selected;
+                            }
+                        });
+                        owner.notify<ItemEventData>({
+                            eventName: ITEMDESELECTED,
+                            object: owner,
+                            index: index,
+                            view: owner._map.get(cell),
+                            android: undefined,
+                            ios: cell
+                        });
+                        return false
+                    }
 
-            const isSelected = collectionView.indexPathsForSelectedItems.containsObject(indexPath);
-            if (isSelected) {
-                collectionView.deselectItemAtIndexPathAnimated(indexPath, false);
-                return false;
+                }
+            } else {
+                if (isSelected) {
+                    collectionView.deselectItemAtIndexPathAnimated(indexPath, false);
+                    owner._selectedIndexPaths.delete(indexPath.row);
+                    const index = indexPath.row;
+                    const cell = collectionView.cellForItemAtIndexPath(indexPath) as FancyListViewCell;
+                    const items = owner.items as any;
+                    const item = items.getItem ? items.getItem(index) : items[index];
+                    owner._itemsSelected = owner._itemsSelected.filter(selected => {
+                        if (item !== selected) {
+                            return selected;
+                        }
+                    });
+                    owner.notify<ItemEventData>({
+                        eventName: ITEMDESELECTED,
+                        object: owner,
+                        index: index,
+                        view: owner._map.get(cell),
+                        android: undefined,
+                        ios: cell
+                    });
+
+                    return false;
+                }
             }
-
             return true;
         }
     }
@@ -616,25 +847,21 @@ class UICollectionDelegateImpl extends NSObject
         if (owner.selectionBehavior === 'None') {
             return false;
         } else {
-
-            const isSelected = collectionView.indexPathsForSelectedItems.containsObject(indexPath);
-            if (!isSelected) {
-                collectionView.selectItemAtIndexPathAnimatedScrollPosition(indexPath, false, UICollectionViewScrollPosition.None);
-                return false;
+            const isSelected = owner._selectedIndexPaths.get(indexPath.row);
+            if (isSelected) {
+                return true;
             }
-
-            return true;
+            return false;
         }
     }
 
     public collectionViewDidSelectItemAtIndexPath(collectionView: UICollectionView, indexPath: NSIndexPath): void {
         const cell = collectionView.cellForItemAtIndexPath(indexPath) as FancyListViewCell;
-        cell.highlighted = false;
         const listView = this._owner && this._owner.get() ? this._owner.get() : null;
         if (!listView) return;
         const index = indexPath.row;
         if (listView.selectionBehavior === 'None') return;
-        cell.selected = true;
+        listView._selectedIndexPaths.set(indexPath.row, indexPath);
         const items = listView.items as any;
         const item = items.getItem ? items.getItem(index) : items[index];
         listView._itemsSelected.push(item);
@@ -653,6 +880,7 @@ class UICollectionDelegateImpl extends NSObject
         if (!listView) return;
         const index = indexPath.row;
         if (listView.selectionBehavior === 'None') return;
+        listView._selectedIndexPaths.delete(indexPath.row);
         const cell = collectionView.cellForItemAtIndexPath(indexPath) as FancyListViewCell;
         const items = listView.items as any;
         const item = items.getItem ? items.getItem(index) : items[index];
@@ -1011,10 +1239,12 @@ class UICollectionViewFlowLinearLayoutImpl extends UICollectionViewFlowLayout {
     public layoutAttributesForElementsInRect(rect: CGRect) {
         let visibleLayoutAttributes = [];
         const len = this.cache && this.cache.length ? this.cache.length : 0;
+        const owner = this._owner.get();
         for (let i = 0; i < len; i++) {
             const attributes = this.cache[i];
             const frame: any =
                 attributes && attributes.frame ? attributes.frame : null;
+
             if (CGRectIntersectsRect(rect, frame)) {
                 visibleLayoutAttributes.push(attributes);
             }

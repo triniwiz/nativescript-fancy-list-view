@@ -6,4 +6,6 @@ export declare class FancyListView extends FancyListViewBase {
     refresh(): void;
 
     getSelectedItems(): any[];
+
+    notifyPullToRefreshFinished(): void;
 }
